@@ -8,18 +8,20 @@ are enums where each case carries a typed **payload**.
 ```python
 from tagged_enum import TaggedEnum
 
+# Declare a tagged enum
 class Shape(TaggedEnum):
     CIRCLE = float                   # radius
     RECTANGLE = tuple[float, float]  # width, height
     TRIANGLE = tuple[float, float]   # base, height
 
 def area(shape: Shape) -> float:
+    # match over enum cases
     match shape:
-        case Shape(case=Shape.CIRCLE, item=radius):
+        case Shape(kind=Shape.CIRCLE, payload=radius):
             return 3.14159 * radius ** 2
-        case Shape(case=Shape.RECTANGLE, item=(w, h)):
+        case Shape(kind=Shape.RECTANGLE, payload=(w, h)):
             return w * h
-        case Shape(case=Shape.TRIANGLE, item=(b, h)):
+        case Shape(kind=Shape.TRIANGLE, payload=(b, h)):
             return 0.5 * b * h
 
 shapes = [Shape.CIRCLE(2.0), 
@@ -37,9 +39,11 @@ This is one of my favorite features from [Swift](https://docs.swift.org/swift-bo
 pip install tagged-enum
 ```
 
+Requires Python 3.11+
+
 ## 🤔 How to use
 
-Each uppercase attribute on a `TaggedEnum` subclass declares a **case**. The
+Each uppercase attribute on a `TaggedEnum` subclass declares a *case*. The
 value assigned to it is the *type* of payload that case carries. `None`
 means the case carries nothing.
 
@@ -57,7 +61,6 @@ the declared type on instantiation.
 GameEvent.PLAYER_JOINED("Ada")            # 👍
 GameEvent.DAMAGE_DEALT(("Jeff", 42))      # 👍
 GameEvent.GAME_OVER()                     # 👍
-
 GameEvent.PLAYER_JOINED(-1)               # 👎 - TypeError
 ```
 
@@ -77,6 +80,7 @@ class Json(TaggedEnum):
 Json.OBJECT({
     "name": Json.STRING("Ada"),
     "tags": Json.ARRAY([Json.STRING("math"), Json.NUMBER(1815.0)]),
+    "other": Json.CUSTOM(MyDataclass())
 })
 ```
 
@@ -98,23 +102,23 @@ above.
 
 ### ✨ Pattern Matching
 
-Tagged enums are unpacked with Python's native [`match` statement](https://docs.python.org/3/tutorial/controlflow.html#match-statements) using the `case`/`item` attributes:
+Tagged enums are unpacked with Python's native [match statement](https://docs.python.org/3/tutorial/controlflow.html#match-statements) using the `kind`/`payload` attributes:
 
 ```python
 def handle(event: GameEvent) -> str:
     match event:
-        case GameEvent(case=GameEvent.PLAYER_JOINED, item=name):
+        case GameEvent(kind=GameEvent.PLAYER_JOINED, payload=name):
             return f"{name} joined the game"
-        case GameEvent(case=GameEvent.DAMAGE_DEALT, item=(target, amount)):
+        case GameEvent(kind=GameEvent.DAMAGE_DEALT, payload=(target, amount)):
             return f"{target} took {amount} damage"
-        case GameEvent(case=GameEvent.GAME_OVER):
+        case GameEvent(kind=GameEvent.GAME_OVER):
             return "Game over"
 
 handle(GameEvent.DAMAGE_DEALT(("Grendel", 42)))
 # 'Grendel took 42 damage'
 ```
 
-When you only care about which case you're looking at and not the payload, use `.kind` to return the tag itself, or the **member**:
+When you only care about which case you're looking at and not the payload, use `.kind` to return the tag itself (also called the **member**):
 
 ```python
 if event.kind is GameEvent.Kind.PLAYER_JOINED:
@@ -128,24 +132,17 @@ match event.kind:
 ```
 
 `GameEvent.PLAYER_JOINED` (the **member**) and
-`GameEvent.PLAYER_JOINED(...)` (an **instance**) are different objects and ideas. The member is a singleton tag you compare with `is`, while the instance carries the actual data payload. Members and instances cannot be equal (by `==`) but instances can be equal if their payload values are equal. 
+`GameEvent.PLAYER_JOINED(...)` (an **instance**) are different objects and ideas. The member is a singleton tag you compare with `is`, while the instance carries the actual data payload. Members and instances are not equal (by `==`). Instances of the same kind/case are equal if and only if their payload values are equal. 
 
 The `Kind` type attribute is a type-level alias for annotating variables that should hold a case rather than an instance.
 
 ```python
 def describe(kind: GameEvent.Kind) -> str:
-    match kind:
-        case GameEvent.Kind.PLAYER_JOINED:
-            return "a player joined"
-        case GameEvent.Kind.DAMAGE_DEALT:
-            return "damage was dealt"
-        case GameEvent.Kind.GAME_OVER:
-            return "the game ended"
+    if kind is GameEvent.Kind.PLAYER_JOINED:
+        do_something()
 
 describe(event.kind) # 'damage was dealt'
 ```
-
-Requires Python 3.11+
 
 ## 🤓 Development
 

@@ -104,18 +104,18 @@ class TaggedEnum(Enum, metaclass=TaggedEnumMeta):
     `TaggedEnum`s can be unpacked using `match` statements:
     ```
     match message:
-        case Message(case=Message.PING):
+        case Message(kind=Message.PING):
             # handle ping
-        case Message(case=Message.STRING, item=string):
+        case Message(kind=Message.STRING, payload=string):
             # handle string
-        case Message(case=Message.COORDINATES, item=(x, y)):
+        case Message(kind=Message.COORDINATES, payload=(x, y)):
             # handle coords (x, y)
         case _:
             raise ValueError
     ```
-    
-    The `.kind` property returns the static enum member (the "tag") 
-    associated with an instance, allowing for simplified matching 
+
+    The `.kind` property returns the static enum member (the "tag")
+    associated with an instance, allowing for simplified matching
     when the payload is not required:
     ```
     if message.kind is Message.Kind.STRING:
@@ -129,17 +129,17 @@ class TaggedEnum(Enum, metaclass=TaggedEnumMeta):
     ```
 
     ### Members vs. Instances
-    **Member**: the static class attribute (e.g., `Message.STRING`) 
-    representing the variant's definition, referred to as _case_ or _kind_. 
+    **Member**: the static class attribute (e.g., `Message.STRING`)
+    representing the variant's definition, referred to as its _kind_.
 
-    **Instance**: the object created by calling a member with a data payload 
+    **Instance**: the object created by calling a member with a data payload
     (e.g., `Message.STRING("hello")`). The instance holds a reference to the
-    concrete `item` value.
+    concrete `payload` value.
 
-    The `Kind` type attribute serves as a type-level representation of all 
-    available members. While an instance contains specific data, its `.kind` 
-    and `.case` properties return the member itself, allowing for 
-    type-safe dispatching and matching without inspecting the underlying 
+    The `Kind` type attribute serves as a type-level representation of all
+    available members. While an instance contains specific data, its `.kind`
+    property returns the member itself, allowing for
+    type-safe dispatching and matching without inspecting the underlying
     payload.
     """
 
@@ -161,25 +161,24 @@ class TaggedEnum(Enum, metaclass=TaggedEnumMeta):
         if not cls._typecheck(arg, t):
             raise TypeError(f"{member.name}: expected {t}, got {type(arg)}")
         
-        # Create case obj
+        # Create instance
         inst = object.__new__(cls)
         inst._member_ = member
         inst._name_ = member.name
         inst._value_ = member.value
 
-        inst._item = arg
-        inst._case = member
+        inst._payload = arg
         inst._kind = member
 
         return inst
 
     @classmethod
-    def make(cls, kind: int, item: Any) -> 'TaggedEnum':
+    def make(cls, kind: int, payload: Any) -> 'TaggedEnum':
         member = cls(kind)
-        return cls._construct(member, item)
-    
+        return cls._construct(member, payload)
+
     # Pattern matching support
-    __match_args__ = ("case", "item")
+    __match_args__ = ("kind", "payload")
 
     @classmethod
     def _typecheck(cls, value: Any, typ: Any) -> bool:
@@ -211,27 +210,23 @@ class TaggedEnum(Enum, metaclass=TaggedEnumMeta):
         return True
     
     @classmethod
-    def item_type(cls, case: int) -> Type[Any]:
-        case_name = cls._value2member_map_[case].name
-        return cls._declared_types[case_name]
+    def payload_type(cls, kind: int) -> Type[Any]:
+        kind_name = cls._value2member_map_[kind].name
+        return cls._declared_types[kind_name]
 
     """ Instance Methods """
 
     @property
-    def case(self) -> 'TaggedEnum':
-        return self._case
-
-    @property
     def kind(self) -> Self:
-        return self if self.is_member else self._case
+        return self if self.is_member else self._kind
 
     @property
-    def item(self) -> Any:
-        return self._item
+    def payload(self) -> Any:
+        return self._payload
 
     @property
     def is_member(self) -> bool:
-        return not hasattr(self, "_item")
+        return not hasattr(self, "_payload")
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, self.__class__):
@@ -241,19 +236,19 @@ class TaggedEnum(Enum, metaclass=TaggedEnumMeta):
         elif self.is_member != other.is_member:
             return False
         elif not self.is_member:
-            return self.item == other.item
+            return self.payload == other.payload
         else:
             return True
 
     def __hash__(self) -> int:
         if not self.is_member:
-            return hash((self.value, self.item))
+            return hash((self.value, self.payload))
         else:
             return hash(self.value)
 
     def __repr__(self):
         if not self.is_member:
-            return f"{self.__class__.__name__}.{self.name}({self.item!r})"
+            return f"{self.__class__.__name__}.{self.name}({self.payload!r})"
         else:
             return f"{self.__class__.__name__}.{self.name}"
         

@@ -6,7 +6,7 @@ from helpers import _Tester
 def test_instance_attributes_cannot_be_reassigned():
     instance = _Tester.STRING("frozen")
     with pytest.raises(AttributeError):
-        instance._item = "mutated"
+        instance._payload = "mutated"
 
 
 def test_instance_forbids_setting_new_attributes_after_creation():

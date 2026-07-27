@@ -7,14 +7,14 @@ def test_construction_with_payload():
     first = _Tester.STRING("This is a tester")
     second = _Tester.COORDINATES((2, 4.0))
 
-    assert first.item == "This is a tester"
-    assert second.item == (2, 4.0)
+    assert first.payload == "This is a tester"
+    assert second.payload == (2, 4.0)
 
 
 def test_construction_without_payload():
     instance = _Tester.NONE()
 
-    assert instance.item is None
+    assert instance.payload is None
     assert instance is not _Tester.NONE  # calling produces a new instance
     assert instance == _Tester.NONE()
 
@@ -31,4 +31,4 @@ def test_calling_an_instance_raises():
 
 
 def test_none_payload_defaults_when_no_arg_given():
-    assert _Tester.NONE().item is None
+    assert _Tester.NONE().payload is None

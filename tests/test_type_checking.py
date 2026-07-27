@@ -14,6 +14,6 @@ def test_type_safety_rejects_wrong_payload(member, bad_value):
 
 
 def test_type_safety_accepts_correct_payload():
-    assert _Tester.STRING("ok").item == "ok"
-    assert _Tester.COORDINATES((1.0, 2.0)).item == (1.0, 2.0)
-    assert _Tester.NONE(None).item is None
+    assert _Tester.STRING("ok").payload == "ok"
+    assert _Tester.COORDINATES((1.0, 2.0)).payload == (1.0, 2.0)
+    assert _Tester.NONE(None).payload is None

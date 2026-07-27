@@ -5,9 +5,9 @@ def test_pattern_matching_by_kind():
     def match_by_kind(tester: _Tester) -> str:
         match tester.kind:
             case _Tester.Kind.STRING:
-                return f"[STRING] {tester.item}"
+                return f"[STRING] {tester.payload}"
             case _Tester.Kind.COORDINATES:
-                x, y = tester.item
+                x, y = tester.payload
                 return f"[COORDINATES] {x, y}"
             case _Tester.Kind.NONE:
                 return "[NONE] Nothing"
@@ -22,11 +22,11 @@ def test_pattern_matching_by_kind():
 def test_structural_pattern_matching():
     def match_structurally(tester: _Tester) -> str:
         match tester:
-            case _Tester(case=_Tester.STRING, item=val):
+            case _Tester(kind=_Tester.STRING, payload=val):
                 return f"Match: {val}"
-            case _Tester(case=_Tester.COORDINATES, item=(x, y)):
+            case _Tester(kind=_Tester.COORDINATES, payload=(x, y)):
                 return f"Match: ({x}, {y})"
-            case _Tester(case=_Tester.NONE):
+            case _Tester(kind=_Tester.NONE):
                 return "Match: Nothing"
             case _:
                 raise ValueError
