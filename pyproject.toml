@@ -37,6 +37,14 @@ test = ["pytest>=7.0"]
 [dependency-groups]
 dev = ["pytest>=7.0"]
 
+[tool.hatch.build]
+exclude = [
+    ".claude/",
+    ".venv/",
+    ".pytest_cache/",
+    "**/__pycache__/",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/tagged_enum"]
 
