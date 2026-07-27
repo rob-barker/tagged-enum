@@ -149,7 +149,7 @@ describe(event.kind) # 'damage was dealt'
 This project uses [`uv`](https://docs.astral.sh/uv/) for dependency management.
 
 ```bash
-uv sync --extra test
+uv sync
 uv run pytest
 ```
 

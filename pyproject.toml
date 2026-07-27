@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "tagged-enum"
 version = "1.0.0"
-description = "Tagged enums (sum types / algebraic data types) for Python, built on enum.Enum"
+description = "Tagged enums for Python"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -13,7 +13,7 @@ requires-python = ">=3.11"
 authors = [
     { name = "Rob Barker", email = "rob.barker.official@gmail.com" },
 ]
-keywords = ["enum", "tagged-union", "sum-type", "algebraic-data-type", "adt", "pattern-matching"]
+keywords = ["enum", "tagged-enum", "tagged-union", "discriminated-union", "pattern-matching"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -33,6 +33,9 @@ Issues = "https://github.com/rob-barker/tagged-enum/issues"
 
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
+
+[dependency-groups]
+dev = ["pytest>=7.0"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tagged_enum"]
