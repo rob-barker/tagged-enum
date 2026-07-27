@@ -1,109 +1,179 @@
 # tagged-enum
 
-Tagged enums (sum types / algebraic data types) for Python, built directly on
-`enum.Enum`. Each case can carry a typed payload, payloads are validated at
-construction time, and instances work with `match` statements out of the box.
+Tagged enums for Python 🐍. 
 
-## Installation
+Tagged enums (a.k.a. discriminated unions, enums with associated values, etc.)
+are enums where each case carries a typed **payload**. 
+
+```python
+from tagged_enum import TaggedEnum
+
+class Shape(TaggedEnum):
+    CIRCLE = float                   # radius
+    RECTANGLE = tuple[float, float]  # width, height
+    TRIANGLE = tuple[float, float]   # base, height
+
+def area(shape: Shape) -> float:
+    match shape:
+        case Shape(case=Shape.CIRCLE, item=radius):
+            return 3.14159 * radius ** 2
+        case Shape(case=Shape.RECTANGLE, item=(w, h)):
+            return w * h
+        case Shape(case=Shape.TRIANGLE, item=(b, h)):
+            return 0.5 * b * h
+
+shapes = [Shape.CIRCLE(2.0), 
+          Shape.RECTANGLE((3.0, 4.0)), 
+          Shape.TRIANGLE((6.0, 2.0))]
+
+[area(s) for s in shapes] # [12.57, 12.0, 6.0]
+```
+
+This is one of my favorite features from [Swift](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/enumerations/#Associated-Values) and [Rust](https://doc.rust-lang.org/rust-by-example/custom_types/enum.html) so I brought it to Python 😈.
+
+## ⬇ Installation
 
 ```bash
 pip install tagged-enum
 ```
 
-Requires Python 3.11+.
+## 🤔 How to use
 
-## Usage
+Each uppercase attribute on a `TaggedEnum` subclass declares a **case**. The
+value assigned to it is the *type* of payload that case carries. `None`
+means the case carries nothing.
 
 ```python
-from tagged_enum import TaggedEnum
-
-class Message(TaggedEnum):
-    PING = None
-    STRING = str
-    COORDINATES = tuple[int, int]
-
-ping_msg = Message.PING()
-string_msg = Message.STRING("hello world")
-coords_msg = Message.COORDINATES((1, -1))
+class GameEvent(TaggedEnum):
+    PLAYER_JOINED = str             # player name
+    DAMAGE_DEALT = tuple[str, int]  # target, amount
+    GAME_OVER = None                # void
 ```
 
-Each uppercase attribute on a `TaggedEnum` subclass declares a case. The
-value assigned to it is the type of payload that case carries; `None` means
-the case carries no payload. Calling a case constructs an instance, and the
-payload is validated against the declared type:
+Calling a case constructs an **instance**, and the payload is checked against
+the declared type on instantiation.
 
 ```python
-Message.STRING(123)  # raises TypeError: STRING: expected <class 'str'>, got <class 'int'>
+GameEvent.PLAYER_JOINED("Ada")            # 👍
+GameEvent.DAMAGE_DEALT(("Jeff", 42))      # 👍
+GameEvent.GAME_OVER()                     # 👍
+
+GameEvent.PLAYER_JOINED(-1)               # 👎 - TypeError
 ```
 
-### Pattern matching
+### 🧩 Typing
 
-Instances unpack via `match`, using the `case`/`item` attributes:
-
-```python
-match message:
-    case Message(case=Message.PING):
-        ...
-    case Message(case=Message.STRING, item=string):
-        ...
-    case Message(case=Message.COORDINATES, item=(x, y)):
-        ...
-```
-
-The `.kind` property returns the case (the "tag") associated with an
-instance, for matching or comparing without touching the payload:
+Payload declarations may be plain types, generic containers, unions, custom types, or forward references to the enclosing class for recursive structures:
 
 ```python
-if message.kind is Message.Kind.STRING:
-    print("This is a string message")
-
-match message.kind:
-    case Message.Kind.PING:
-        ...
-    case Message.Kind.STRING:
-        ...
-```
-
-### Members vs. instances
-
-**Member**: the class attribute (e.g. `Message.STRING`) representing a
-case's definition.
-
-**Instance**: the object produced by calling a member with a payload (e.g.
-`Message.STRING("hello")`). Instances are immutable and compare/hash by
-`(case, payload)`.
-
-The `Kind` type attribute is a type-level alias for the enum itself, useful
-for annotating a variable that should hold a case rather than an instance.
-
-### Supported payload types
-
-Payload declarations may be plain types, generic containers, unions, or
-forward references to the enclosing class for recursive structures:
-
-```python
-from typing import Optional
-
 class Json(TaggedEnum):
     NULL = None
     NUMBER = float
     STRING = str
     ARRAY = list["Json"]
     OBJECT = dict[str, "Json"]
+    CUSTOM = MyDataclass
+
+Json.OBJECT({
+    "name": Json.STRING("Ada"),
+    "tags": Json.ARRAY([Json.STRING("math"), Json.NUMBER(1815.0)]),
+})
 ```
 
-Type checking validates the outer container (e.g. `list`, `dict`, a `Union`
-member) but does not recurse into generic type parameters, and skips
-validation entirely for unresolved forward references.
+`Union[...]` or `X | Y` and `Optional[...]` payloads are also valid types. Construction succeeds if the value matches any member of the union:
 
-## Development
+```python
+class ID(TaggedEnum):
+    VALUE = int | str
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+ID.VALUE(42)     # 👍
+ID.VALUE("abc")  # 👍
+ID.VALUE(4.2)    # 👎 - TypeError
+```
+
+Type checking validates the outer container (e.g. `list`, `dict`, which
+member of a `Union`) but does not recurse into generic type parameters, and
+skips validation entirely for unresolved forward references like `"Json"`
+above.
+
+### ✨ Pattern Matching
+
+Tagged enums are unpacked with Python's native [`match` statement](https://docs.python.org/3/tutorial/controlflow.html#match-statements) using the `case`/`item` attributes:
+
+```python
+def handle(event: GameEvent) -> str:
+    match event:
+        case GameEvent(case=GameEvent.PLAYER_JOINED, item=name):
+            return f"{name} joined the game"
+        case GameEvent(case=GameEvent.DAMAGE_DEALT, item=(target, amount)):
+            return f"{target} took {amount} damage"
+        case GameEvent(case=GameEvent.GAME_OVER):
+            return "Game over"
+
+handle(GameEvent.DAMAGE_DEALT(("Grendel", 42)))
+# 'Grendel took 42 damage'
+```
+
+When you only care about which case you're looking at and not the payload, use `.kind` to return the tag itself, or the **member**:
+
+```python
+if event.kind is GameEvent.Kind.PLAYER_JOINED:
+    print("player joined")
+
+match event.kind:
+    case GameEvent.Kind.PLAYER_JOINED:
+        ...
+    case GameEvent.Kind.GAME_OVER:
+        ...
+```
+
+`GameEvent.PLAYER_JOINED` (the **member**) and
+`GameEvent.PLAYER_JOINED(...)` (an **instance**) are different objects and ideas. The member is a singleton tag you compare with `is`, while the instance carries the actual data payload. Members and instances cannot be equal (by `==`) but instances can be equal if their payload values are equal. 
+
+The `Kind` type attribute is a type-level alias for annotating variables that should hold a case rather than an instance.
+
+```python
+def describe(kind: GameEvent.Kind) -> str:
+    match kind:
+        case GameEvent.Kind.PLAYER_JOINED:
+            return "a player joined"
+        case GameEvent.Kind.DAMAGE_DEALT:
+            return "damage was dealt"
+        case GameEvent.Kind.GAME_OVER:
+            return "the game ended"
+
+describe(event.kind) # 'damage was dealt'
+```
+
+Requires Python 3.11+
+
+## 🤓 Development
+
+This project uses [`uv`](https://docs.astral.sh/uv/) for dependency management.
 
 ```bash
 uv sync --extra test
 uv run pytest
 ```
+
+### Building
+
+Build the sdist/wheel into `dist/`:
+
+```bash
+uv build
+```
+
+To try the library locally without installing it anywhere:
+
+```bash
+# drop into a REPL
+uv run python
+# OR run a script inside the project's environment
+uv run python my_script.py
+```
+
+### 🧪 Testing 
 
 Tests live in `tests/`, split by topic (construction, equality/hashing,
 pattern matching, generic payloads, etc.) so a single area can be run in
@@ -113,9 +183,26 @@ isolation, e.g.:
 uv run pytest tests/test_generic_payloads.py
 ```
 
-Without uv, the equivalent is:
+Without `uv`, the equivalent is:
 
 ```bash
 pip install -e ".[test]"
 pytest
 ```
+
+## 🛠️ Contribution Guidelines
+
+This repository is open source, though maintenance is infrequent. Please be
+patient 🥺.
+
+- **File an issue first:** Anything beyond a small fix should be discussed in an issue
+  before you put work into a PR.
+- **Keep PRs focused:** One change or feature per PR, branched off `Development`
+  and rebased/updated before you submit.
+- **Branch naming:** `issues/<issue-number>`, optionally with a short
+  description, e.g. `issues/123-fix-a-bug`.
+- **Include a description and test coverage:** Explain what changed and
+  why, add or update tests under `tests/`, and reference the issue it
+  closes.
+
+Thanks for helping keep this repo clean and organized! 😁
