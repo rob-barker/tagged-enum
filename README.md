@@ -1,21 +1,32 @@
-# tagged-enum
+<h1 align="center">🏷️ tagged-enum</h1>
 
-Tagged enums for Python 🐍. 
+<p align="center">
+  <a href="https://pypi.org/project/tagged-enum/"><img src="https://img.shields.io/pypi/v/tagged-enum.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/tagged-enum/"><img src="https://img.shields.io/pypi/pyversions/tagged-enum.svg" alt="Python versions"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/rob-barker/tagged-enum.svg" alt="License: MIT"></a>
+  <a href="https://pypi.org/project/tagged-enum/"><img src="https://img.shields.io/pypi/dm/tagged-enum.svg" alt="PyPI downloads"></a>
+</p>
 
-Tagged enums (a.k.a. discriminated unions, enums with associated values, etc.)
-are enums where each case carries a typed **payload**. 
+Tagged enums for Python 🐍.
+
+Tagged enums (a.k.a. tagged unions, discriminated unions, enums with associated values, etc.)
+are enums where each case carries a typed **payload**.
 
 ```python
-from tagged_enum import TaggedEnum
-
-# Declare a tagged enum
 class Shape(TaggedEnum):
     CIRCLE = float                   # radius
     RECTANGLE = tuple[float, float]  # width, height
     TRIANGLE = tuple[float, float]   # base, height
 
+Shape.CIRCLE(2.0)
+Shape.RECTANGLE((3.0, 4.0))
+Shape.TRIANGLE((6.0, 2.0))
+```
+
+Unpack cases with `match`:
+
+```python
 def area(shape: Shape) -> float:
-    # match over enum cases
     match shape:
         case Shape(kind=Shape.CIRCLE, payload=radius):
             return 3.14159 * radius ** 2
@@ -23,12 +34,6 @@ def area(shape: Shape) -> float:
             return w * h
         case Shape(kind=Shape.TRIANGLE, payload=(b, h)):
             return 0.5 * b * h
-
-shapes = [Shape.CIRCLE(2.0), 
-          Shape.RECTANGLE((3.0, 4.0)), 
-          Shape.TRIANGLE((6.0, 2.0))]
-
-[area(s) for s in shapes] # [12.57, 12.0, 6.0]
 ```
 
 This is one of my favorite features from [Swift](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/enumerations/#Associated-Values) and [Rust](https://doc.rust-lang.org/rust-by-example/custom_types/enum.html) so I brought it to Python 😈.
@@ -48,20 +53,18 @@ value assigned to it is the *type* of payload that case carries. `None`
 means the case carries nothing.
 
 ```python
-class GameEvent(TaggedEnum):
-    PLAYER_JOINED = str             # player name
-    DAMAGE_DEALT = tuple[str, int]  # target, amount
-    GAME_OVER = None                # void
+class Result(TaggedEnum):
+    SUCCESS = None   # void — it just worked
+    FAILURE = str    # error message
 ```
 
 Calling a case constructs an **instance**, and the payload is checked against
 the declared type on instantiation.
 
 ```python
-GameEvent.PLAYER_JOINED("Ada")            # 👍
-GameEvent.DAMAGE_DEALT(("Jeff", 42))      # 👍
-GameEvent.GAME_OVER()                     # 👍
-GameEvent.PLAYER_JOINED(-1)               # 👎 - TypeError
+Result.SUCCESS()                  # 👍
+Result.FAILURE("invalid input")   # 👍
+Result.FAILURE(404)               # 👎 - TypeError
 ```
 
 ### 🧩 Typing
@@ -98,13 +101,18 @@ ID.VALUE(4.2)    # 👎 - TypeError
 Type checking validates the outer container (e.g. `list`, `dict`, which
 member of a `Union`) but does not recurse into generic type parameters, and
 skips validation entirely for unresolved forward references like `"Json"`
-above.
+above. This is a known limitation and will be addressed in a future release.
 
 ### ✨ Pattern Matching
 
 Tagged enums are unpacked with Python's native [match statement](https://docs.python.org/3/tutorial/controlflow.html#match-statements) using the `kind`/`payload` attributes:
 
 ```python
+class GameEvent(TaggedEnum):
+    PLAYER_JOINED = str             # player name
+    DAMAGE_DEALT = tuple[str, int]  # target, amount
+    GAME_OVER = None                # void
+
 def handle(event: GameEvent) -> str:
     match event:
         case GameEvent(kind=GameEvent.PLAYER_JOINED, payload=name):
