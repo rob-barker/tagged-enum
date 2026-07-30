@@ -1,4 +1,4 @@
-from typing import (List, Type, Dict, ForwardRef, Self,
+from typing import (ForwardRef, Self,
                     Union, Any, get_origin, get_args, ClassVar)
 from types import UnionType, NoneType
 from enum import Enum, EnumMeta
@@ -6,11 +6,11 @@ from enum import Enum, EnumMeta
 
 class TaggedEnumMeta(EnumMeta):
     @property
-    def Kind(cls) -> Type[Self]:
+    def Kind(cls) -> type[Self]:
         return cls
     
-    def __new__(mcls, name: str, bases, namespace: Dict[str, Any], **kw):
-        declared: Dict[str, Type[Any]] = {}
+    def __new__(mcls, name: str, bases, namespace: dict[str, Any], **kw):
+        declared: dict[str, type[Any]] = {}
         fresh = mcls.__prepare__(name, bases)
         next_case = 0
     
@@ -35,8 +35,8 @@ class TaggedEnumMeta(EnumMeta):
         cls = super().__new__(mcls, name, bases, fresh, **kw)
 
         def sanitize_type(
-            t: Type[Any] | ForwardRef | None
-        ) -> Type[Any] | str:
+            t: type[Any] | ForwardRef | None
+        ) -> type[Any] | str:
             if t is None:
                 return NoneType
             
@@ -151,10 +151,10 @@ class TaggedEnum(Enum, metaclass=TaggedEnumMeta):
         return self._construct(self, *args, **kwargs)
 
     @classmethod
-    def _construct(cls: Type['TaggedEnum'], 
-                   member: 'TaggedEnum', 
-                   *args: List[Any]) -> 'TaggedEnum':
-        t: Type[Any] = cls._declared_types[member.name]
+    def _construct(cls: type['TaggedEnum'],
+                   member: 'TaggedEnum',
+                   *args: list[Any]) -> 'TaggedEnum':
+        t: type[Any] = cls._declared_types[member.name]
         arg = args[0] if len(args) > 0 else None
         
         # Type check
@@ -210,7 +210,7 @@ class TaggedEnum(Enum, metaclass=TaggedEnumMeta):
         return True
     
     @classmethod
-    def payload_type(cls, kind: int) -> Type[Any]:
+    def payload_type(cls, kind: int) -> type[Any]:
         kind_name = cls._value2member_map_[kind].name
         return cls._declared_types[kind_name]
 

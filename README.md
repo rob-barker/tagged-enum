@@ -7,8 +7,6 @@
   <a href="https://pypi.org/project/tagged-enum/"><img src="https://img.shields.io/pypi/dm/tagged-enum.svg" alt="PyPI downloads"></a>
 </p>
 
-Tagged enums for Python 🐍.
-
 Tagged enums (a.k.a. tagged unions, discriminated unions, enums with associated values, etc.)
 are enums where each case carries a typed **payload**.
 
@@ -54,7 +52,7 @@ means the case carries nothing.
 
 ```python
 class Result(TaggedEnum):
-    SUCCESS = None   # void — it just worked
+    SUCCESS = None
     FAILURE = str    # error message
 ```
 
